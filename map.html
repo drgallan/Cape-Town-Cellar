@@ -1,0 +1,145 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cape Winelands data map</title>
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="./wines.js"></script><script src="./regions.js"></script><script src="./wards.js"></script>
+<style>html,body{margin:0;height:100%;background:#DDE8ED;font-family:Arial,Helvetica,sans-serif;overflow:hidden;touch-action:none}
+svg{display:block;width:100%;height:100%}.hit{cursor:pointer}
+#legend{position:absolute;left:10px;bottom:8px;background:rgba(253,252,250,.92);padding:6px 9px;border-radius:2px;font-size:10px;color:#333E48;line-height:1.5;pointer-events:none}
+#legend b{font-family:'Barlow Condensed';letter-spacing:.8px;text-transform:uppercase;font-size:11px;color:#33637E}
+#bar{display:block;height:6px;width:110px;margin:3px 0}
+#back{position:absolute;top:8px;left:10px;background:#333E48;color:#fff;border:0;border-radius:2px;font-family:'Barlow Condensed';letter-spacing:1px;text-transform:uppercase;font-size:12px;padding:7px 11px;display:none;cursor:pointer}
+#src{position:absolute;right:8px;bottom:6px;font-size:9px;color:#7996AB;pointer-events:none}
+#tabs{position:absolute;top:0;left:0;right:0;display:flex;background:#FDFCFA;border-bottom:1px solid #E3E0D8;z-index:2}
+#tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:9px 0 7px;font-family:'Barlow Condensed';letter-spacing:1.2px;text-transform:uppercase;font-size:13px;color:#7996AB;cursor:pointer}
+#tabs button.on{color:#0074C8;border-bottom-color:#0074C8;font-weight:600}
+#back{top:44px}</style></head><body>
+<div id="tabs"><button data-v="map" class="on">Map</button><button data-v="producers">Producers</button><button data-v="styles">Styles</button></div>
+<svg id="svg"></svg>
+<button id="back">← All regions</button>
+<div id="legend"><b id="lt">Quality</b><canvas id="bar" width="110" height="6"></canvas><span id="ll"></span></div>
+<div id="src">Source: Tim Atkin MW 2026; SPW</div>
+<script>
+const D=window.WINES, groups=window.REGION_GROUPS, REG=window.REGION_OF, WARDS=window.WARDS;
+const svg=d3.select('#svg'), root=svg.append('g');
+let W=innerWidth,H=innerHeight;
+const proj=d3.geoMercator(), path=d3.geoPath(proj);
+const EXT={type:'Polygon',coordinates:[[[17.6,-32.3],[22.3,-32.3],[22.3,-35.1],[17.6,-35.1],[17.6,-32.3]]]};
+let lens='quality', focus=null, land=null, view='map';
+const TOP=36;
+const LENS={
+  quality:{label:'Quality',stat:ws=>d3.mean(ws,w=>w.s),fmt:v=>v.toFixed(1)+' avg',dom:[89,95],ramp:d3.interpolateRgb('#B9D2DB','#0074C8')},
+  value:{label:'Value',stat:ws=>d3.mean(ws,w=>w.vr),fmt:v=>v.toFixed(2)+'× value',dom:[.9,1.6],ramp:d3.interpolateRgb('#E8E6DF','#BC955B')},
+  ageing:{label:'Ageing',stat:ws=>d3.mean(ws.filter(w=>w.t),w=>w.t),fmt:v=>'to '+Math.round(v),dom:[2029,2036],ramp:d3.interpolateRgb('#B9D2DB','#333E48')},
+  price:{label:'Price',stat:ws=>d3.median(ws,w=>w.p),fmt:v=>'R'+Math.round(v)+' median',dom:[150,600],ramp:d3.interpolateRgb('#E8E6DF','#33637E')}
+};
+const byReg={};D.forEach(w=>{const g=REG(w.r);(byReg[g]=byReg[g]||[]).push(w)});
+const wardOf=r=>WARDS[r]||WARDS[Object.keys(WARDS).find(k=>r.includes(k)||k.includes(r))]||null;
+function color(v){const L=LENS[lens];const t=Math.max(0,Math.min(1,(v-L.dom[0])/(L.dom[1]-L.dom[0])));return L.ramp(t)}
+function legend(){const L=LENS[lens];document.getElementById('lt').textContent=L.label;const c=document.getElementById('bar').getContext('2d');for(let i=0;i<110;i++){c.fillStyle=L.ramp(i/109);c.fillRect(i,0,1,6)}document.getElementById('ll').textContent=L.fmt(L.dom[0]).replace(/ .*/,'')+' → '+L.fmt(L.dom[1]).replace(/ .*/,'')+' · dot size = wines'}
+function post(m){parent.postMessage(Object.assign({type:'cc-map'},m),'*')}
+function size(){W=innerWidth;H=innerHeight;svg.attr('viewBox',`0 0 ${W} ${H}`);proj.fitSize([W,H],EXT);draw()}
+function focusExtent(){const g=groups.find(x=>x.g===focus);const pts=byReg[focus].map(w=>wardOf(w.r)).filter(Boolean);const lats=pts.map(p=>p[0]).concat([g.lat]),lons=pts.map(p=>p[1]).concat([g.lon]);let a=d3.min(lats)-.12,b=d3.max(lats)+.12,c=d3.min(lons)-.15,e=d3.max(lons)+.15;if(b-a<.5){const m=(a+b)/2;a=m-.25;b=m+.25}if(e-c<.6){const m=(c+e)/2;c=m-.3;e=m+.3}return {type:'Polygon',coordinates:[[[c,a],[e,a],[e,b],[c,b],[c,a]]]}}
+function draw(){
+  root.selectAll('*').remove();
+  root.append('rect').attr('width',W).attr('height',H).attr('fill','#DDE8ED');
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+  if(view==='styles'){document.getElementById('back').style.display='none';document.getElementById('legend').style.display='none';return drawStyles()}
+  if(view==='producers'&&!focus){focus=(groups.find(g=>byReg[g.g]&&byReg[g.g].length===d3.max(groups.filter(x=>byReg[x.g]),x=>byReg[x.g].length))||groups[0]).g;post({action:'focus',region:focus})}
+  if(view==='map'&&focus){focus=null;post({action:'focus',region:''})}
+  if(land&&!focus) root.append('g').selectAll('path').data(land.features).join('path').attr('d',path).attr('fill','#EDEBE3').attr('stroke','#B9D2DB').attr('stroke-width',1);
+  document.getElementById('back').style.display=focus?'block':'none';
+  document.getElementById('legend').style.display=focus?'none':'block';
+  if(!focus) drawRegions(); else drawProducers();
+}
+function drawStyles(){
+  root.append('rect').attr('width',W).attr('height',H).attr('fill','#FDFCFA');
+  const cats=[['Chenin',/Chenin/i],['Chardonnay',/Chardonnay/i],['Sauv Bl',/Sauvignon Blanc/i],['White blend',/White|Blanc\b(?! de)/i],['Pinot Noir',/Pinot Noir/i],['Syrah',/Syrah|Shiraz/i],['Cab Sauv',/Cabernet Sauvignon/i],['Cinsault',/Cinsault/i],['Pinotage',/Pinotage/i],['Red blend',/Red|Rouge/i],['MCC',/MCC|Cap Classique|Brut|Blanc de/i],['Sweet',null]];
+  const cat=w=>{if(w.st==='Sweet'||w.st==='Fortified')return 'Sweet';if(w.st==='Sparkling')return 'MCC';for(const [k,re] of cats){if(re&&re.test(w.n))return k}return w.st==='Red'?'Red blend':w.st==='White'?'White blend':null};
+  const regs=groups.filter(g=>byReg[g.g]&&byReg[g.g].length>=20).sort((a,b)=>byReg[b.g].length-byReg[a.g].length);
+  const cols=cats.map(c=>c[0]);
+  const cell={};regs.forEach(g=>byReg[g.g].forEach(w=>{const c=cat(w);if(!c)return;(cell[g.g+'|'+c]=cell[g.g+'|'+c]||[]).push(w)}));
+  const labW=Math.min(96,W*.26),x0=labW+6,y0=TOP+44,cw=(W-x0-6)/cols.length,ch=(H-y0-28)/regs.length;
+  const maxN=d3.max(Object.values(cell),v=>v.length);
+  root.append('g').selectAll('text').data(cols).join('text').text(d=>d).attr('x',(d,i)=>x0+cw*(i+.5)-3).attr('y',y0-8).attr('text-anchor','start').attr('transform',(d,i)=>`rotate(-40 ${x0+cw*(i+.5)-3} ${y0-8})`).attr('font-family','Barlow Condensed').attr('font-size',9.5).attr('fill','#33637E');
+  root.append('g').selectAll('text').data(regs).join('text').text(d=>d.g.split(' &')[0]).attr('x',x0-6).attr('y',(d,i)=>y0+ch*(i+.5)+3).attr('text-anchor','end').attr('font-family','Barlow Condensed').attr('font-size',10).attr('letter-spacing','.5').attr('fill','#333E48').style('text-transform','uppercase');
+  const g=root.append('g');
+  regs.forEach((r,i)=>cols.forEach((c,j)=>{const ws=cell[r.g+'|'+c];if(!ws||ws.length<3)return;const v=LENS[lens].stat(ws);const rad=Math.max(2.5,Math.sqrt(ws.length/maxN)*Math.min(cw,ch)*.46);
+    const cx=x0+cw*(j+.5),cy=y0+ch*(i+.5);
+    g.append('circle').attr('class','hit').attr('cx',cx).attr('cy',cy).attr('r',rad).attr('fill',color(v)).attr('fill-opacity',.9).attr('stroke','#FDFCFA').attr('stroke-width',1)
+      .on('click',e=>{e.stopPropagation();post({action:'style',region:r.g,style:ws[0].st,cat:c,query:c==='Red blend'||c==='White blend'||c==='Sweet'?'':c==='Sauv Bl'?'Sauvignon Blanc':c==='Cab Sauv'?'Cabernet Sauvignon':c==='Chenin'?'Chenin':c==='MCC'?'':c});
+        g.selectAll('circle').attr('stroke','#FDFCFA').attr('stroke-width',1);d3.select(e.currentTarget).attr('stroke','#333E48').attr('stroke-width',2.5);
+        tip.style('display',null).selectAll('*').remove();const t1=r.g.split(' &')[0]+' · '+c,t2=ws.length+' wines · '+LENS[lens].fmt(v);const w=Math.max(t1.length*7.5,t2.length*5.6)+20;const tx=Math.max(6,Math.min(W-w-6,cx-w/2)),ty=cy-rad-46<y0?cy+rad+8:cy-rad-46;
+        tip.append('rect').attr('x',tx).attr('y',ty).attr('width',w).attr('height',38).attr('rx',2).attr('fill','#333E48');tip.append('text').text(t1).attr('x',tx+10).attr('y',ty+15).attr('font-family','Barlow Condensed').attr('font-size',13).attr('font-weight',600).attr('fill','#FDFCFA');tip.append('text').text(t2).attr('x',tx+10).attr('y',ty+30).attr('font-size',10).attr('fill','#B9D2DB')});
+    if(rad>9) g.append('text').text(ws.length).attr('x',cx).attr('y',cy+3.5).attr('text-anchor','middle').attr('font-family','Barlow Condensed').attr('font-size',10).attr('font-weight',600).attr('fill','#FDFCFA').style('pointer-events','none')}));
+  const tip=root.append('g').style('display','none');
+  root.on('click',()=>{tip.style('display','none');g.selectAll('circle').attr('stroke','#FDFCFA').attr('stroke-width',1)});
+  root.append('text').text('REGION × STYLE · dot size = wines, colour = '+LENS[lens].label.toLowerCase()+' · tap a dot to browse').attr('x',W/2).attr('y',H-10).attr('text-anchor','middle').attr('font-family','Barlow Condensed').attr('font-size',11).attr('letter-spacing','1').attr('fill','#33637E');
+}
+function drawRegions(){
+  const all=groups.concat([{g:'Wider Cape',lat:-34.75,lon:18.3}]);
+  const data=all.filter(g=>byReg[g.g]).map(g=>{const p=proj([g.lon,g.lat]);return {g,ws:byReg[g.g],v:LENS[lens].stat(byReg[g.g]),x:p[0],y:p[1],x0:p[0],y0:p[1]}});
+  const r=d3.scaleSqrt().domain([0,d3.max(data,d=>d.ws.length)]).range([6,Math.min(W,H)/9.5]);
+  data.forEach(d=>d.rr=r(d.ws.length));
+  const sim=d3.forceSimulation(data).force('x',d3.forceX(d=>d.x0).strength(.6)).force('y',d3.forceY(d=>d.y0).strength(.6)).force('c',d3.forceCollide(d=>d.rr+3)).stop();
+  for(let i=0;i<200;i++)sim.tick();
+  const sel=root.append('g').selectAll('g').data(data).join('g').attr('class','hit')
+    .attr('transform',d=>`translate(${d.x},${d.y})`)
+    .on('click',(e,d)=>{focus=d.g.g;view='producers';post({action:'focus',region:focus});size()});
+  sel.append('circle').attr('r',d=>r(d.ws.length)).attr('fill',d=>color(d.v)).attr('fill-opacity',.85).attr('stroke','#FDFCFA').attr('stroke-width',1.5);
+  sel.append('text').text(d=>d.g.g==='Wider Cape'?'W. Cape blends':d.g.g.split(' &')[0]).attr('text-anchor','middle').attr('dy',d=>-(r(d.ws.length)+5))
+    .attr('font-family','Barlow Condensed').attr('font-size',d=>d.ws.length>60?13:11).attr('letter-spacing','.5').attr('fill','#333E48').style('text-transform','uppercase').style('paint-order','stroke').attr('stroke','#DDE8ED').attr('stroke-width',3);
+  sel.append('text').text(d=>LENS[lens].fmt(d.v).replace(/ .*/,'')).attr('text-anchor','middle').attr('dy',4).attr('font-family','Barlow Condensed').attr('font-weight',600).attr('font-size',d=>Math.max(9,Math.min(16,r(d.ws.length)*.7))).attr('fill',d=>r(d.ws.length)>14?'#FDFCFA':'#333E48');
+}
+function drawProducers(){
+  const ws=byReg[focus]; const P={};
+  ws.forEach(w=>{const p=w.pr;(P[p]=P[p]||{p,ws:[],wards:{}}).ws.push(w);P[p].wards[w.r]=(P[p].wards[w.r]||0)+1});
+  const nodes=Object.values(P).map(n=>{n.ward=Object.keys(n.wards).sort((a,b)=>n.wards[b]-n.wards[a])[0];n.v=LENS[lens].stat(n.ws);n.s=d3.mean(n.ws,w=>w.s);n.r=3+Math.sqrt(n.ws.length)*2.4;return n});
+  // rows = wards with >=6 producers; the rest fold into the region row
+  const wc={};nodes.forEach(n=>{wc[n.ward]=(wc[n.ward]||0)+1});
+  let rows=Object.keys(wc).filter(k=>wc[k]>=6).sort((a,b)=>wc[b]-wc[a]).slice(0,5);
+  const other=focus; if(nodes.some(n=>!rows.includes(n.ward))){rows=rows.filter(r=>r!==other);rows.push(other)}
+  nodes.forEach(n=>{n.row=rows.includes(n.ward)?n.ward:other});
+  const padL=14,padR=14,top=TOP+40,bottom=54;
+  const x=d3.scaleLinear().domain([d3.min(nodes,n=>n.s)-.3,d3.max(nodes,n=>n.s)+.3]).range([padL+8,W-padR-8]);
+  const rowH=(H-top-bottom)/rows.length;
+  const y=r=>top+rowH*(rows.indexOf(r)+.5);
+  root.append('rect').attr('width',W).attr('height',H).attr('fill','#FDFCFA');
+  rows.forEach((r,i)=>{root.append('rect').attr('x',0).attr('y',top+rowH*i).attr('width',W).attr('height',rowH).attr('fill',i%2?'#F4F2EC':'#FDFCFA');
+    root.append('text').text((r===other&&rows.length>1?'Other '+focus:r).toUpperCase()).attr('x',padL).attr('y',top+rowH*i+13).attr('font-family','Barlow Condensed').attr('font-size',10).attr('letter-spacing','1').attr('fill','#7996AB')});
+  const ticks=x.ticks(5);
+  root.append('g').selectAll('line').data(ticks).join('line').attr('x1',d=>x(d)).attr('x2',d=>x(d)).attr('y1',top).attr('y2',H-bottom).attr('stroke','#E3E0D8');
+  root.append('g').selectAll('text').data(ticks).join('text').text(d=>d).attr('x',d=>x(d)).attr('y',H-bottom+16).attr('text-anchor','middle').attr('font-family','Barlow Condensed').attr('font-size',11).attr('fill','#33637E');
+  root.append('text').text('AVERAGE SCORE →').attr('x',W-padR).attr('y',H-bottom+16).attr('text-anchor','end').attr('font-family','Barlow Condensed').attr('font-size',10).attr('letter-spacing','1').attr('fill','#7996AB');
+  nodes.forEach(n=>{n.x=x(n.s);n.y=y(n.row);n.fy0=n.y;n.lo=top+rowH*rows.indexOf(n.row)+n.r+14;n.hi=top+rowH*(rows.indexOf(n.row)+1)-n.r-2});
+  const dense=nodes.length>120?0.8:1; nodes.forEach(n=>{n.r*=dense;n.lo=top+rowH*rows.indexOf(n.row)+n.r+14;n.hi=top+rowH*(rows.indexOf(n.row)+1)-n.r-2});
+  const bound=()=>nodes.forEach(n=>{n.y=Math.max(n.lo,Math.min(n.hi,n.y));n.x=Math.max(padL+n.r,Math.min(W-padR-n.r,n.x))});
+  const sim=d3.forceSimulation(nodes).force('x',d3.forceX(n=>x(n.s)).strength(.6)).force('y',d3.forceY(n=>n.fy0).strength(.08)).force('c',d3.forceCollide(n=>n.r+1.2).iterations(3)).force('b',bound).stop();
+  for(let i=0;i<300;i++)sim.tick();
+  bound();
+  const g=root.append('g');
+  const tip=root.append('g').style('display','none');
+  const sel=g.selectAll('g').data(nodes).join('g').attr('class','hit').attr('transform',d=>`translate(${d.x},${d.y})`)
+    .on('click',(e,d)=>{e.stopPropagation();post({action:'producer',producer:d.p,region:focus});g.selectAll('circle').attr('stroke','#FDFCFA').attr('stroke-width',1);d3.select(e.currentTarget).select('circle').attr('stroke','#333E48').attr('stroke-width',2.5);showTip(d)});
+  sel.append('circle').attr('r',d=>d.r).attr('fill',d=>color(d.v)).attr('fill-opacity',.92).attr('stroke','#FDFCFA').attr('stroke-width',1);
+  // label only the standouts, skipping collisions
+  const placed=[];
+  nodes.slice().sort((a,b)=>b.s-a.s||b.ws.length-a.ws.length).slice(0,14).forEach(d=>{
+    const tw=d.p.length*5.2,ty=d.y-d.r-4,box={x0:d.x-tw/2,x1:d.x+tw/2,y0:ty-10,y1:ty};
+    if(box.x0<2||box.x1>W-2||placed.some(b=>b.x0<box.x1&&b.x1>box.x0&&b.y0<box.y1&&b.y1>box.y0))return;placed.push(box);
+    g.append('text').text(d.p).attr('x',d.x).attr('y',ty).attr('text-anchor','middle').attr('font-family','Barlow Condensed').attr('font-size',10).attr('letter-spacing','.3').attr('fill','#333E48').style('paint-order','stroke').attr('stroke','#FDFCFA').attr('stroke-width',2.5).style('pointer-events','none')});
+  function showTip(d){tip.style('display',null).selectAll('*').remove();const t1=d.p,t2=d.ws.length+' wine'+(d.ws.length===1?'':'s')+' · avg '+d.s.toFixed(1)+(lens==='quality'?'':' · '+LENS[lens].fmt(d.v));const w=Math.max(t1.length*7.5,t2.length*5.6)+20;let tx=Math.max(6,Math.min(W-w-6,d.x-w/2)),ty=d.y-d.r-46;if(ty<top+4)ty=d.y+d.r+8;
+    tip.append('rect').attr('x',tx).attr('y',ty).attr('width',w).attr('height',38).attr('rx',2).attr('fill','#333E48');
+    tip.append('text').text(t1).attr('x',tx+10).attr('y',ty+15).attr('font-family','Barlow Condensed').attr('font-size',13).attr('font-weight',600).attr('letter-spacing','.5').attr('fill','#FDFCFA');
+    tip.append('text').text(t2).attr('x',tx+10).attr('y',ty+30).attr('font-size',10).attr('fill','#B9D2DB')}
+  root.on('click',()=>{tip.style('display','none');g.selectAll('circle').attr('stroke','#FDFCFA').attr('stroke-width',1)});
+  root.append('text').text(focus.toUpperCase()+' · '+nodes.length+' producers · tap a dot').attr('x',W/2).attr('y',H-bottom+34).attr('text-anchor','middle').attr('font-family','Barlow Condensed').attr('font-size',12).attr('letter-spacing','1').attr('fill','#33637E');
+}
+document.getElementById('back').onclick=()=>{focus=null;view='map';post({action:'focus',region:''});size()};
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{view=b.dataset.v;size()});
+addEventListener('message',e=>{const m=e.data||{};if(m.type!=='cc-map-cmd')return;if(m.lens&&LENS[m.lens]){lens=m.lens;legend()}if('region' in m){focus=m.region&&byReg[m.region]?m.region:null;if(view!=='styles')view=focus?'producers':'map'}size()});
+addEventListener('resize',size);
+legend();size();
+fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json').then(r=>r.json()).then(t=>{land=topojson.feature(t,t.objects.countries);size();post({action:'ready'})}).catch(()=>{});
+</script></body></html>
