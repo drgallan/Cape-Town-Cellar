@@ -1,1 +1,1 @@
-{"name":"Cape Cellar 2026","short_name":"Cape Cellar","start_url":"./Cape Cellar Explorer.dc.html","display":"standalone","background_color":"#FDFCFA","theme_color":"#0074C8","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml"}]}
+{"name":"Cape Cellar 2026","short_name":"Cape Cellar","start_url":"./index.html","display":"standalone","background_color":"#FDFCFA","theme_color":"#0074C8","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml"}],"scope":"./"}
