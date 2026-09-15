@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cape Cellar 2026</title>
+<script src="wines.js"></script>
+<script src="regions.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&display=swap">
+
+<script src="dc-runtime.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#E8E6DF;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%}
+a{color:#0074C8}a:hover{color:#33637E}
+input[type=range]{accent-color:#0074C8}
+div[data-scroll]{scrollbar-width:none}div[data-scroll]::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="max-width:480px;margin:0 auto;background:#FDFCFA;min-height:100vh;color:#333E48;font-size:15px;padding-bottom:110px;position:relative">
+  <header style="position:sticky;top:0;z-index:20;background:#FDFCFA;border-bottom:1px solid #E3E0D8;padding:14px 16px 0">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+      <div style="font-family:'Barlow Condensed',Arial;font-size:24px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase">Cape Cellar <span style="color:#0074C8">2026</span></div>
+      <div style="font-size:11px;color:#7996AB;white-space:nowrap">Tim Atkin MW</div>
+    </div>
+    <div style="font-size:12px;color:#7996AB;margin-top:2px;padding-bottom:10px">{{ countLine }}</div>
+    <sc-if value="{{ isWines }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;gap:8px;padding-bottom:10px">
+        <input type="search" aria-label="Search wines" placeholder="Search wine, producer, region, note" value="{{ q }}" sc-camel-on-change="{{ onQ }}" autocomplete="off" style="flex:1;min-width:0;background:#FFFFFF;border:1px solid #C9CFD6;border-radius:2px;padding:11px 12px;color:#333E48;font-family:inherit;font-size:16px">
+        <button sc-camel-on-click="{{ toggleFilters }}" style="background:#FFFFFF;border:1px solid #C9CFD6;border-radius:2px;color:#333E48;font-family:inherit;font-size:14px;padding:0 14px;min-height:44px;cursor:pointer">{{ filterBtnLabel }}</button>
+      </div>
+      <div data-scroll="1" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px">
+        <sc-for list="{{ styleChips }}" as="c" hint-placeholder-count="5">
+          <button sc-camel-on-click="{{ c.pick }}" style="{{ c.style }}">{{ c.label }}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+  </header>
+  <sc-if value="{{ filtersOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#F4F2EC;border-bottom:1px solid #E3E0D8;padding:12px 16px">
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0">
+        <label style="flex:none;width:88px;font-family:'Barlow Condensed',Arial;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#7996AB">Min score</label>
+        <input type="range" min="84" max="100" value="{{ ms }}" sc-camel-on-change="{{ onMs }}" style="flex:1;min-width:0">
+        <b style="color:#333E48;font-weight:normal;width:58px;text-align:right;font-size:13px">{{ msLabel }}</b>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0">
+        <label style="flex:none;width:88px;font-family:'Barlow Condensed',Arial;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#7996AB">Max price</label>
+        <input type="range" min="80" max="3000" step="20" value="{{ mp }}" sc-camel-on-change="{{ onMp }}" style="flex:1;min-width:0">
+        <b style="color:#333E48;font-weight:normal;width:58px;text-align:right;font-size:13px">{{ mpLabel }}</b>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0">
+        <label style="flex:none;width:88px;font-family:'Barlow Condensed',Arial;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#7996AB">Drink to</label>
+        <input type="range" min="2026" max="2040" value="{{ dt }}" sc-camel-on-change="{{ onDt }}" style="flex:1;min-width:0">
+        <b style="color:#333E48;font-weight:normal;width:58px;text-align:right;font-size:13px">{{ dtLabel }}</b>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0">
+        <label style="flex:none;width:88px;font-family:'Barlow Condensed',Arial;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#7996AB">Region</label>
+        <sc-raw-select value="{{ reg }}" sc-camel-on-change="{{ onReg }}" style="flex:1;min-width:0;background:#FFFFFF;color:#333E48;border:1px solid #C9CFD6;border-radius:2px;padding:8px;font-family:inherit;font-size:14px">
+          <option value="">All regions</option>
+          <sc-for list="{{ regionOpts }}" as="o" hint-placeholder-count="3">
+            <option value="{{ o }}">{{ o }}</option>
+          </sc-for>
+        </sc-raw-select>
+      </div>
+      <sc-if value="{{ hasProdF }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:10px;margin:8px 0">
+          <label style="flex:none;width:88px;font-family:'Barlow Condensed',Arial;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#7996AB">Producer</label>
+          <span style="flex:1;font-size:14px">{{ prodF }}</span>
+          <button sc-camel-on-click="{{ clearProdF }}" style="background:none;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-size:12px;font-family:inherit;padding:5px 9px;cursor:pointer">Clear</button>
+        </div>
+      </sc-if>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center">
+        <button sc-camel-on-click="{{ toggleFr }}" style="{{ frStyle }}">Frontier only</button>
+        <button sc-camel-on-click="{{ toggleCo }}" style="{{ coStyle }}">Collect</button>
+        <button sc-camel-on-click="{{ toggleVa }}" style="{{ vaStyle }}">Value pick</button>
+        <button sc-camel-on-click="{{ resetFilters }}" style="margin-left:auto;background:none;border:none;color:#0074C8;font-family:inherit;font-size:13px;cursor:pointer;padding:6px 0">Reset</button>
+      </div>
+      <div style="font-size:11px;color:#7996AB;line-height:1.5;margin-top:10px"><b style="font-weight:normal;color:#33637E">× value</b> = what a wine of this score and style typically costs, divided by this wine's price (above 1× is cheaper than typical). <b style="font-weight:normal;color:#BC955B">Frontier</b> = the best score at its price within its style. <b style="font-weight:normal;color:#33637E">Collect</b> = 94+, keeps to 2033 or later, at least 1.2× value. <b style="font-weight:normal;color:#0074C8">Value pick</b> = 93+ for R400 or less.</div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ isWines }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 16px;font-size:12px;color:#7996AB;border-bottom:1px solid #EAE7DF">
+      <span>{{ shownLine }}</span>
+      <span style="display:flex;gap:6px;align-items:center">
+        <button sc-camel-on-click="{{ surprise }}" style="background:none;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-family:inherit;font-size:12px;padding:8px 10px;min-height:44px;cursor:pointer;white-space:nowrap">Surprise me</button>
+        <sc-raw-select value="{{ sort }}" sc-camel-on-change="{{ onSort }}" aria-label="Sort wines" style="background:#FFFFFF;color:#333E48;border:1px solid #C9CFD6;border-radius:2px;padding:8px 6px;min-height:44px;font-family:inherit;font-size:12px;max-width:150px">
+          <optgroup label="Rank"><option value="vr">Value rank</option><option value="s">Score, high to low</option><option value="ppk">Points per R1,000</option></optgroup>
+          <optgroup label="Price"><option value="pa">Price, low to high</option><option value="pd">Price, high to low</option></optgroup>
+          <optgroup label="Cellar"><option value="t">Longest to cellar</option><option value="f">Ready soonest</option><option value="vn">Vintage, newest</option><option value="vo">Vintage, oldest</option></optgroup>
+          <optgroup label="Group by"><option value="reg">Region</option><option value="st">Style</option><option value="pr">Producer</option></optgroup>
+        </sc-raw-select>
+      </span>
+    </div>
+    <div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+        <div>
+          <sc-if value="{{ r.hd }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#E8E6DF;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#33637E;padding:7px 16px">{{ r.hd }} <span style="color:#7996AB">{{ r.hdn }}</span></div>
+          </sc-if>
+          <div sc-camel-on-click="{{ r.toggle }}" style="padding:12px 16px;border-bottom:1px solid #EAE7DF;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+              <div style="min-width:0">
+                <div style="font-size:15px;line-height:1.3"><span style="font-family:'Barlow Condensed',Arial;color:#0074C8;margin-right:6px">{{ r.rk }}</span>{{ r.name }}</div>
+                <div style="font-size:12px;color:#7996AB;margin-top:3px">{{ r.meta }}</div>
+              </div>
+              <div style="text-align:right;flex:none">
+                <div style="font-family:'Barlow Condensed',Arial;font-size:27px;font-weight:600;color:#0074C8;line-height:1">{{ r.score }}</div>
+                <div style="font-size:12px;color:#33637E;margin-top:3px;white-space:nowrap">{{ r.price }}</div>
+              </div>
+            </div>
+            <sc-if value="{{ showTags }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">
+                <span style="border:1px solid #D4D0C6;color:#7996AB;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px">{{ r.val }}</span>
+                <sc-if value="{{ r.fr }}" hint-placeholder-val="{{ false }}"><span style="border:1px solid #BC955B;color:#BC955B;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px">Frontier</span></sc-if>
+                <sc-if value="{{ r.co }}" hint-placeholder-val="{{ false }}"><span style="border:1px solid #33637E;color:#33637E;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px">Collect</span></sc-if>
+                <sc-if value="{{ r.va }}" hint-placeholder-val="{{ false }}"><span style="border:1px solid #0074C8;color:#0074C8;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px">Value pick</span></sc-if>
+                <button sc-camel-on-click="{{ r.heart }}" style="{{ r.heartStyle }}">{{ r.heartGlyph }}</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:10px">
+                <sc-if value="{{ r.note }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:13.5px;font-style:italic;color:#33637E;line-height:1.55">{{ r.note }}</div>
+                </sc-if>
+                <div style="display:flex;gap:8px;margin-top:10px">
+                  <button sc-camel-on-click="{{ r.comp }}" style="background:none;border:1px solid #0074C8;border-radius:2px;color:#0074C8;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;cursor:pointer">{{ r.compLabel }}</button>
+                  <button sc-camel-on-click="{{ r.heart }}" style="background:none;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;cursor:pointer">{{ r.heartLabel }}</button>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ hasMore }}" hint-placeholder-val="{{ false }}">
+        <button sc-camel-on-click="{{ more }}" style="display:block;width:calc(100% - 32px);margin:14px 16px;background:#FFFFFF;border:1px solid #C9CFD6;border-radius:2px;color:#333E48;font-family:inherit;font-size:14px;padding:12px;cursor:pointer">{{ moreLabel }}</button>
+      </sc-if>
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:48px 16px;color:#7996AB;text-align:center">Nothing matches. Loosen a filter.</div>
+      </sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{ isExplore }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <div style="padding:18px 16px 6px;font-family:'Barlow Condensed',Arial;font-size:15px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase">The Winelands</div>
+      <div style="font-size:11px;color:#7996AB;padding:0 16px 8px">{{ mapHint }}</div>
+      <div style="display:flex;gap:6px;padding:0 16px 10px">
+        <sc-for list="{{ lensChips }}" as="c" hint-placeholder-count="4">
+          <button sc-camel-on-click="{{ c.pick }}" style="{{ c.style }}">{{ c.label }}</button>
+        </sc-for>
+      </div>
+      <div style="width:100%;height:420px;background:#DDE8ED;position:relative">
+        <sc-if value="{{ terrainOff }}" hint-placeholder-val="{{ true }}">
+          <img src="map.png" alt="Cape winelands map" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+        </sc-if>
+        <sc-if value="{{ terrainOn }}" hint-placeholder-val="{{ false }}">
+          <iframe ref="{{ mapRef }}" src="about:blank" title="Google Maps satellite" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+        </sc-if>
+      </div>
+      <div data-scroll="1" ref="{{ carouselRef }}" sc-camel-on-scroll="{{ onCarousel }}" style="display:flex;gap:10px;overflow-x:auto;padding:12px 16px 4px;scroll-snap-type:x mandatory">
+        <sc-for list="{{ regionCards }}" as="c" hint-placeholder-count="3">
+          <div sc-camel-on-click="{{ c.pick }}" style="{{ c.style }}">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font-family:'Barlow Condensed',Arial;font-size:15px;font-weight:600;letter-spacing:1px;text-transform:uppercase;line-height:1.1">{{ c.name }}</div>
+              <div style="font-family:'Barlow Condensed',Arial;font-size:22px;font-weight:600;color:#0074C8;line-height:1;flex:none">{{ c.big }}</div>
+            </div>
+            <div style="font-size:11px;color:#7996AB;margin-top:4px">{{ c.line1 }}</div>
+            <div style="font-size:12px;margin-top:8px;line-height:1.4"><span style="color:#7996AB">Signature</span> {{ c.sig }}</div>
+            <div style="font-size:12px;margin-top:2px;line-height:1.4"><span style="color:#7996AB">Leading</span> {{ c.lead }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:8px;padding:10px 16px 0;flex-wrap:wrap;align-items:center">
+        <button sc-camel-on-click="{{ mapBrowse }}" style="background:#0074C8;border:1px solid #0074C8;border-radius:2px;color:#FFFFFF;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;cursor:pointer;white-space:nowrap">{{ mapBrowseLabel }}</button>
+        <button sc-camel-on-click="{{ toggleTerrain }}" style="background:none;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;cursor:pointer;white-space:nowrap">{{ terrainLabel }}</button>
+        <a href="{{ mapEarth }}" target="_blank" rel="noopener" style="display:inline-block;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;text-decoration:none;white-space:nowrap">Google Earth</a>
+      </div>
+      <div style="margin:14px 16px 0;border:1px solid #E3E0D8;border-radius:2px">
+        <div style="padding:10px 12px 6px;font-family:'Barlow Condensed',Arial;font-size:13px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#33637E">{{ snapTitle }}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#E3E0D8">
+          <div style="background:#FDFCFA;padding:8px 10px"><div style="font-family:'Barlow Condensed',Arial;font-size:22px;font-weight:600;color:#0074C8;line-height:1">{{ snapN }}</div><div style="font-size:10px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Wines</div></div>
+          <div style="background:#FDFCFA;padding:8px 10px"><div style="font-family:'Barlow Condensed',Arial;font-size:22px;font-weight:600;color:#0074C8;line-height:1">{{ snapAvg }}</div><div style="font-size:10px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Avg score</div></div>
+          <div style="background:#FDFCFA;padding:8px 10px"><div style="font-size:14px;line-height:22px">{{ snapMed }}</div><div style="font-size:10px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Median</div></div>
+          <div style="background:#FDFCFA;padding:8px 10px"><div style="font-size:14px;line-height:22px">{{ snapStyle }}</div><div style="font-size:10px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Mostly</div></div>
+        </div>
+        <div style="padding:10px 12px 4px;font-size:11px;color:#7996AB">{{ snapProdHint }}</div>
+        <div data-scroll="1" style="display:flex;gap:6px;overflow-x:auto;padding:0 12px 10px">
+          <sc-for list="{{ snapProds }}" as="p" hint-placeholder-count="4">
+            <button sc-camel-on-click="{{ p.pin }}" style="{{ p.style }}"><span style="white-space:nowrap">{{ p.label }}</span></button>
+          </sc-for>
+        </div>
+        <sc-for list="{{ snapTop }}" as="w" hint-placeholder-count="3">
+          <div sc-camel-on-click="{{ w.open }}" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid #EAE7DF;cursor:pointer">
+            <div style="min-width:0"><div style="font-size:13.5px;line-height:1.3">{{ w.name }}</div><div style="font-size:11px;color:#7996AB;margin-top:2px">{{ w.meta }}</div></div>
+            <div style="font-family:'Barlow Condensed',Arial;font-size:20px;font-weight:600;color:#0074C8;flex:none">{{ w.score }}</div>
+          </div>
+        </sc-for>
+        <div sc-camel-on-click="{{ snapValueOpen }}" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid #EAE7DF;background:#F4F2EC;cursor:pointer">
+          <div style="min-width:0"><div style="font-size:10px;color:#BC955B;text-transform:uppercase;letter-spacing:.5px">Best value here</div><div style="font-size:13.5px;line-height:1.3;margin-top:2px">{{ snapValueName }}</div><div style="font-size:11px;color:#7996AB;margin-top:2px">{{ snapValueMeta }}</div></div>
+          <div style="font-family:'Barlow Condensed',Arial;font-size:20px;font-weight:600;color:#0074C8;flex:none">{{ snapValueScore }}</div>
+        </div>
+      </div>
+      <div style="padding:18px 16px 4px;font-family:'Barlow Condensed',Arial;font-size:15px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase">Regions</div>
+      <sc-for list="{{ regionRows }}" as="g" hint-placeholder-count="6">
+        <div sc-camel-on-click="{{ g.pick }}" style="display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid #EAE7DF;cursor:pointer">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px">{{ g.name }}</div>
+            <div style="height:4px;background:#EDEBE3;margin-top:5px"><div style="{{ g.barStyle }}"></div></div>
+          </div>
+          <div style="font-size:12px;color:#7996AB;white-space:nowrap">{{ g.stat }}</div>
+        </div>
+      </sc-for>
+      <div style="padding:22px 16px 4px;font-family:'Barlow Condensed',Arial;font-size:15px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase">Styles</div>
+      <sc-for list="{{ styleRows }}" as="g" hint-placeholder-count="4">
+        <div sc-camel-on-click="{{ g.pick }}" style="display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid #EAE7DF;cursor:pointer">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px">{{ g.name }}</div>
+            <div style="height:4px;background:#EDEBE3;margin-top:5px"><div style="{{ g.barStyle }}"></div></div>
+          </div>
+          <div style="font-size:12px;color:#7996AB;white-space:nowrap">{{ g.stat }}</div>
+        </div>
+      </sc-for>
+      <div style="padding:22px 16px 2px;font-family:'Barlow Condensed',Arial;font-size:15px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase">Producer leaderboard</div>
+      <div style="font-size:11px;color:#7996AB;padding:0 16px 6px">Producers with 4+ scored wines, ranked by average score.</div>
+      <sc-for list="{{ producerRows }}" as="p" hint-placeholder-count="8">
+        <div sc-camel-on-click="{{ p.pick }}" style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid #EAE7DF;cursor:pointer">
+          <span style="font-family:'Barlow Condensed',Arial;color:#0074C8;width:26px;flex:none">{{ p.rk }}</span>
+          <span style="flex:1;font-size:14px;min-width:0">{{ p.name }}</span>
+          <span style="font-size:12px;color:#7996AB;white-space:nowrap">{{ p.stat }}</span>
+        </div>
+      </sc-for>
+      <div style="padding:16px;font-size:10px;color:#7996AB;line-height:1.5">Source: Tim Atkin MW, South Africa 2026 Special Report; SPW. Wines without a retail price (Cape Winemakers Guild auction lots) are not shown.</div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ isCharts }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <div style="padding:18px 16px 4px;font-family:'Barlow Condensed',Arial;font-size:15px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase">Score vs price</div>
+      <div style="font-size:11px;color:#7996AB;padding:0 16px 8px">Every wine, filters applied. Top-left is the value corner. Tap a dot.</div>
+      <canvas ref="{{ scatterRef }}" sc-camel-on-click="{{ onScatterTap }}" style="width:100%;height:340px;display:block"></canvas>
+      <div style="display:flex;gap:14px;padding:8px 16px;font-size:11px;color:#7996AB;align-items:center">
+        <span style="display:flex;gap:5px;align-items:center"><span style="width:8px;height:8px;border-radius:999px;background:#BC955B;display:inline-block"></span>Red</span>
+        <span style="display:flex;gap:5px;align-items:center"><span style="width:8px;height:8px;border-radius:999px;background:#0074C8;display:inline-block"></span>White</span>
+        <span style="display:flex;gap:5px;align-items:center"><span style="width:8px;height:8px;border-radius:999px;background:#7996AB;display:inline-block"></span>Other</span>
+      </div>
+      <sc-if value="{{ sel }}" hint-placeholder-val="{{ false }}">
+        <div sc-camel-on-click="{{ selOpen }}" style="margin:6px 16px;border:1px solid #C9CFD6;border-radius:2px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer">
+          <div style="min-width:0">
+            <div style="font-size:14px;line-height:1.3">{{ selName }}</div>
+            <div style="font-size:12px;color:#7996AB;margin-top:2px">{{ selMeta }}</div>
+          </div>
+          <div style="text-align:right;flex:none">
+            <div style="font-family:'Barlow Condensed',Arial;font-size:22px;font-weight:600;color:#0074C8;line-height:1">{{ selScore }}</div>
+            <div style="font-size:12px;color:#33637E">{{ selPrice }}</div>
+          </div>
+        </div>
+      </sc-if>
+      <div style="padding:22px 16px 4px;font-family:'Barlow Condensed',Arial;font-size:15px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase">Cellar timeline</div>
+      <div style="font-size:11px;color:#7996AB;padding:0 16px 8px">How many wines reach their drink-to year. Tap a year to browse wines that keep at least that long.</div>
+      <sc-for list="{{ yearRows }}" as="y" hint-placeholder-count="8">
+        <div sc-camel-on-click="{{ y.pick }}" style="display:flex;align-items:center;gap:10px;padding:4px 16px;cursor:pointer">
+          <span style="font-family:'Barlow Condensed',Arial;font-size:13px;color:#33637E;width:44px;flex:none">{{ y.label }}</span>
+          <div style="flex:1;height:12px;background:#EDEBE3"><div style="{{ y.barStyle }}"></div></div>
+          <span style="font-size:11px;color:#7996AB;width:36px;text-align:right;flex:none">{{ y.n }}</span>
+        </div>
+      </sc-for>
+      <div style="padding:16px;font-size:10px;color:#7996AB;line-height:1.5">Source: Tim Atkin MW, South Africa 2026 Special Report; SPW. Prices as supplied by producers. Wines without a retail price (Cape Winemakers Guild auction lots) are not shown.</div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <div style="padding:18px 16px 4px;font-family:'Barlow Condensed',Arial;font-size:15px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase">Shortlist</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 16px 10px">
+        <span style="font-size:11px;color:#7996AB">{{ savedLine }}</span>
+        <sc-if value="{{ hasSaves }}" hint-placeholder-val="{{ false }}">
+          <button sc-camel-on-click="{{ shareLink }}" style="background:none;border:1px solid #0074C8;border-radius:2px;color:#0074C8;font-family:'Barlow Condensed',Arial;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;cursor:pointer">{{ shareLabel }}</button>
+        </sc-if>
+      </div>
+      <sc-if value="{{ sharedNote }}" hint-placeholder-val="{{ false }}">
+        <div style="margin:0 16px 10px;background:#E8F1F8;color:#33637E;font-size:12px;padding:8px 10px;border-radius:2px">{{ sharedNote }}</div>
+      </sc-if>
+      <sc-if value="{{ noSaves }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:36px 24px;color:#7996AB;text-align:center;font-size:14px;line-height:1.6">Nothing saved yet. Tap the heart on any wine — or let the cellar choose for you.<div style="margin-top:14px"><button sc-camel-on-click="{{ surprise }}" style="background:#0074C8;border:1px solid #0074C8;border-radius:2px;color:#FFFFFF;font-family:'Barlow Condensed',Arial;font-size:14px;letter-spacing:1px;text-transform:uppercase;padding:10px 18px;cursor:pointer">Surprise me</button></div></div>
+      </sc-if>
+      <sc-for list="{{ savedRows }}" as="r" hint-placeholder-count="3">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 16px;border-bottom:1px solid #EAE7DF">
+          <div sc-camel-on-click="{{ r.open }}" style="min-width:0;cursor:pointer">
+            <div style="font-size:14px;line-height:1.3">{{ r.name }}</div>
+            <div style="font-size:12px;color:#7996AB;margin-top:2px">{{ r.meta }}</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex:none">
+            <div style="text-align:right">
+              <div style="font-family:'Barlow Condensed',Arial;font-size:22px;font-weight:600;color:#0074C8;line-height:1">{{ r.score }}</div>
+              <div style="font-size:12px;color:#33637E">{{ r.price }}</div>
+            </div>
+            <button sc-camel-on-click="{{ r.comp }}" style="background:none;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-size:11px;font-family:inherit;padding:6px 8px;cursor:pointer">{{ r.compLabel }}</button>
+            <button sc-camel-on-click="{{ r.remove }}" aria-label="Remove from shortlist" style="background:none;border:none;color:#7996AB;font-size:16px;cursor:pointer;min-width:40px;min-height:40px">✕</button>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ hasCmp }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:0;right:0;bottom:52px;z-index:40"><div style="max-width:480px;margin:0 auto;background:#333E48;color:#FFFFFF;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <span style="font-size:13px">{{ cmpLine }}</span>
+      <span style="display:flex;gap:8px">
+        <button sc-camel-on-click="{{ cmpShow }}" style="background:#0074C8;border:none;border-radius:2px;color:#FFFFFF;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:7px 14px;cursor:pointer">Compare</button>
+        <button sc-camel-on-click="{{ cmpClear }}" style="background:none;border:1px solid #7996AB;border-radius:2px;color:#B9D2DB;font-size:12px;font-family:inherit;padding:7px 10px;cursor:pointer">Clear</button>
+      </span>
+    </div></div>
+  </sc-if>
+  <sc-if value="{{ cmpOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:60;background:rgba(51,62,72,.55);overflow:auto"><div style="max-width:480px;margin:0 auto;background:#FDFCFA;min-height:100%;padding-bottom:30px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #E3E0D8">
+        <span style="font-family:'Barlow Condensed',Arial;font-size:18px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase">Compare</span>
+        <button sc-camel-on-click="{{ cmpClose }}" style="background:none;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-size:13px;font-family:inherit;padding:6px 12px;cursor:pointer">Close</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:#E3E0D8">
+        <sc-for list="{{ cmpCards }}" as="c" hint-placeholder-count="2">
+          <div style="background:#FDFCFA;padding:14px 12px">
+            <div style="font-size:13px;line-height:1.35;min-height:52px">{{ c.name }}</div>
+            <div style="font-family:'Barlow Condensed',Arial;font-size:34px;font-weight:600;color:#0074C8;line-height:1;margin-top:8px">{{ c.score }}</div>
+            <div style="font-size:11px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Score</div>
+            <div style="font-size:16px;margin-top:10px">{{ c.price }}</div>
+            <div style="font-size:11px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Price</div>
+            <div style="font-size:16px;margin-top:10px">{{ c.val }}</div>
+            <div style="font-size:11px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Value</div>
+            <div style="font-size:13px;margin-top:10px">{{ c.reg }}</div>
+            <div style="font-size:11px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Region · style</div>
+            <div style="font-size:13px;margin-top:10px">{{ c.win }}</div>
+            <div style="font-size:11px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Drink window</div>
+            <button sc-camel-on-click="{{ c.remove }}" style="margin-top:12px;background:none;border:1px solid #C9CFD6;border-radius:2px;color:#7996AB;font-size:11px;font-family:inherit;padding:5px 9px;cursor:pointer">Remove</button>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ cmpNote }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:14px 16px;font-size:13px;font-style:italic;color:#33637E;line-height:1.55">{{ cmpNote }}</div>
+      </sc-if>
+    </div></div>
+  </sc-if>
+  <sc-if value="{{ detOpen }}" hint-placeholder-val="{{ false }}">
+    <div sc-camel-on-click="{{ detClose }}" style="position:fixed;inset:0;z-index:70;background:rgba(51,62,72,.55);display:flex;align-items:flex-end;justify-content:center">
+      <div sc-camel-on-click="{{ swallow }}" style="background:#FDFCFA;width:100%;max-width:480px;max-height:92vh;overflow:auto;border-radius:6px 6px 0 0;padding-bottom:max(20px, env(safe-area-inset-bottom))">
+        <div style="position:sticky;top:0;background:#FDFCFA;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #E3E0D8">
+          <button sc-camel-on-click="{{ detProdPick }}" style="background:none;border:none;padding:10px 0;min-height:40px;color:#0074C8;font-family:'Barlow Condensed',Arial;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;text-align:left">{{ detProd }} →</button>
+          <button sc-camel-on-click="{{ detClose }}" style="background:none;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-size:13px;font-family:inherit;padding:9px 14px;min-height:40px;cursor:pointer">Close</button>
+        </div>
+        <div style="padding:14px 16px 0">
+          <div style="font-size:19px;line-height:1.3">{{ detName }}</div>
+          <div style="font-size:12px;color:#7996AB;margin-top:4px">{{ detMeta }}</div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#E3E0D8;margin-top:14px">
+            <div style="background:#FDFCFA;padding:10px 8px"><div style="font-family:'Barlow Condensed',Arial;font-size:26px;font-weight:600;color:#0074C8;line-height:1">{{ detScore }}</div><div style="font-size:10px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Score</div></div>
+            <div style="background:#FDFCFA;padding:10px 8px"><div style="font-size:15px;line-height:26px">{{ detPrice }}</div><div style="font-size:10px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Price</div></div>
+            <div style="background:#FDFCFA;padding:10px 8px"><div style="font-size:15px;line-height:26px">{{ detVal }}</div><div style="font-size:10px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Value</div></div>
+            <div style="background:#FDFCFA;padding:10px 8px"><div style="font-size:15px;line-height:26px">{{ detWin }}</div><div style="font-size:10px;color:#7996AB;text-transform:uppercase;letter-spacing:.5px;margin-top:3px">Drink</div></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+            <sc-if value="{{ detFr }}" hint-placeholder-val="{{ false }}"><span style="border:1px solid #BC955B;color:#BC955B;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px">Frontier</span></sc-if>
+            <sc-if value="{{ detCo }}" hint-placeholder-val="{{ false }}"><span style="border:1px solid #33637E;color:#33637E;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px">Collect</span></sc-if>
+            <sc-if value="{{ detVa }}" hint-placeholder-val="{{ false }}"><span style="border:1px solid #0074C8;color:#0074C8;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px">Value pick</span></sc-if>
+          </div>
+          <sc-if value="{{ detNote }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:14px;font-style:italic;color:#33637E;line-height:1.6;margin-top:14px">{{ detNote }}</div>
+          </sc-if>
+          <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+            <button sc-camel-on-click="{{ detHeart }}" style="background:#0074C8;border:1px solid #0074C8;border-radius:2px;color:#FFFFFF;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;cursor:pointer">{{ detHeartLabel }}</button>
+            <button sc-camel-on-click="{{ detComp }}" style="background:none;border:1px solid #0074C8;border-radius:2px;color:#0074C8;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;cursor:pointer">{{ detCompLabel }}</button>
+            <a href="{{ detMapHref }}" target="_blank" rel="noopener" style="display:inline-block;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;text-decoration:none">Find on Maps</a>
+          </div>
+        </div>
+        <sc-if value="{{ hasOthers }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:22px 16px 4px;font-family:'Barlow Condensed',Arial;font-size:14px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase">{{ detOthersLine }}</div>
+          <sc-for list="{{ detOthers }}" as="o" hint-placeholder-count="3">
+            <div sc-camel-on-click="{{ o.open }}" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 16px;border-bottom:1px solid #EAE7DF;cursor:pointer">
+              <div style="min-width:0"><div style="font-size:13.5px;line-height:1.3">{{ o.name }}</div><div style="font-size:11px;color:#7996AB;margin-top:2px">{{ o.meta }}</div></div>
+              <div style="font-family:'Barlow Condensed',Arial;font-size:20px;font-weight:600;color:#0074C8;flex:none">{{ o.score }}</div>
+            </div>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{ hasSimilar }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:22px 16px 2px;font-family:'Barlow Condensed',Arial;font-size:14px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase">Similar score, better value</div>
+          <div style="font-size:11px;color:#7996AB;padding:0 16px 4px">Same style, within a point, at or below this price.</div>
+          <sc-for list="{{ detSimilar }}" as="o" hint-placeholder-count="3">
+            <div sc-camel-on-click="{{ o.open }}" style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 16px;border-bottom:1px solid #EAE7DF;cursor:pointer">
+              <div style="min-width:0"><div style="font-size:13.5px;line-height:1.3">{{ o.name }}</div><div style="font-size:11px;color:#7996AB;margin-top:2px">{{ o.meta }}</div></div>
+              <div style="font-family:'Barlow Condensed',Arial;font-size:20px;font-weight:600;color:#0074C8;flex:none">{{ o.score }}</div>
+            </div>
+          </sc-for>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ pickOpen }}" hint-placeholder-val="{{ false }}">
+    <div sc-camel-on-click="{{ pickClose }}" style="position:fixed;inset:0;z-index:60;background:rgba(51,62,72,.55);display:flex;align-items:center;justify-content:center;padding:24px">
+      <div sc-camel-on-click="{{ swallow }}" style="background:#FDFCFA;border-radius:2px;max-width:330px;width:100%;padding:20px">
+        <div style="font-family:'Barlow Condensed',Arial;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#0074C8">Surprise pick</div>
+        <div style="font-size:17px;line-height:1.35;margin-top:8px">{{ pickName }}</div>
+        <div style="font-size:12px;color:#7996AB;margin-top:4px">{{ pickMeta }}</div>
+        <div style="display:flex;gap:16px;align-items:baseline;margin-top:10px">
+          <span style="font-family:'Barlow Condensed',Arial;font-size:32px;font-weight:600;color:#0074C8;line-height:1">{{ pickScore }}</span>
+          <span style="font-size:15px;color:#33637E">{{ pickPrice }}</span>
+        </div>
+        <sc-if value="{{ pickNote }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:13px;font-style:italic;color:#33637E;line-height:1.55;margin-top:10px">{{ pickNote }}</div>
+        </sc-if>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button sc-camel-on-click="{{ surprise }}" style="background:#0074C8;border:1px solid #0074C8;border-radius:2px;color:#FFFFFF;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;cursor:pointer">Another</button>
+          <button sc-camel-on-click="{{ pickHeart }}" style="background:none;border:1px solid #C9CFD6;border-radius:2px;color:#33637E;font-family:'Barlow Condensed',Arial;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;cursor:pointer">{{ pickHeartLabel }}</button>
+          <button sc-camel-on-click="{{ pickClose }}" style="margin-left:auto;background:none;border:none;color:#7996AB;font-size:13px;font-family:inherit;cursor:pointer">Close</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+  <nav style="position:fixed;left:0;right:0;bottom:0;z-index:50"><div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-top:2px solid #E3E0D8;display:flex">
+    <button sc-camel-on-click="{{ goWines }}" style="{{ tabWinesStyle }}">Wines</button>
+    <button sc-camel-on-click="{{ goExplore }}" style="{{ tabExploreStyle }}">Explore</button>
+    <button sc-camel-on-click="{{ goCharts }}" style="{{ tabChartsStyle }}">Charts</button>
+    <button sc-camel-on-click="{{ goList }}" style="{{ tabListStyle }}">Shortlist</button>
+  </div></nav>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:900},&quot;compact&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;List&quot;},&quot;defaultSort&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;vr&quot;,&quot;options&quot;:[&quot;vr&quot;,&quot;s&quot;,&quot;ppk&quot;,&quot;pa&quot;,&quot;t&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;List&quot;}}">
+class Component extends DCLogic {
+  state = { ready:false, tab:'wines', q:'', style:'All', ms:84, mp:3000, dt:2026, reg:'', fl:{fr:0,co:0,va:0}, sort:'vr', shown:50, prodF:'', open:{}, saved:{}, cmp:[], filtersOpen:false, cmpOpen:false, pick:null, sel:null };
+  componentDidMount() {
+    try { const s = JSON.parse(localStorage.getItem('cc_shortlist_v1')||'{}'); this.setState({saved:s}); } catch(e){}
+    if (this.props.defaultSort) this.setState({sort:this.props.defaultSort});
+    const poll = () => { if (window.WINES && window.REGION_OF) { this.setState({ready:true}); this.loadShared(); } else setTimeout(poll, 60); };
+    poll();
+    this._scroll = () => {
+      if (this.state.tab!=='wines' || this._busy) return;
+      const b=document.documentElement;
+      if (b.scrollHeight - (window.scrollY + window.innerHeight) < 900 && (this._total||0) > this.state.shown) {
+        this._busy=true; this.setState(s=>({shown:s.shown+60})); setTimeout(()=>{ this._busy=false; }, 250);
+      } };
+    window.addEventListener('scroll', this._scroll, {passive:true});
+    this._resize = () => { if (this.state.tab==='charts') this.drawScatter(); };
+    window.addEventListener('resize', this._resize);
+  }
+  componentWillUnmount(){ window.removeEventListener('resize', this._resize); window.removeEventListener('scroll', this._scroll); }
+  componentDidUpdate(){
+    if (this.state.tab==='charts') this.drawScatter();
+    // A sheet is modal: hold the list still behind it.
+    const modal = !!(this.state.detail || this.state.cmpOpen || this.state.pick);
+    if (modal !== this._modal){
+      this._modal = modal;
+      // Both elements: body alone does not hold the scroll on mobile Safari.
+      document.documentElement.style.overflow = modal ? 'hidden' : '';
+      document.body.style.overflow = modal ? 'hidden' : '';
+      document.body.style.touchAction = modal ? 'none' : '';
+    }
+  }
+  top(){ window.scrollTo(0,0); }
+  scrollCarousel(reg){ const el=this.carEl; if(!el) return; const i=Math.max(0,(this._cardOrder||[]).indexOf(reg)); const card=el.children[i]; if(card) el.scrollTo({left:card.offsetLeft-16,behavior:'smooth'}); }
+  D(){ return window.WINES || []; }
+  key(d){ return d.n+'|'+d.v+'|'+d.r; }
+  R(v){ return 'R'+Math.round(v).toLocaleString('en-ZA'); }
+  prod(d){ return d.pr || d.n.split(' ').slice(0,2).join(' '); }
+  shareUrl(saved){
+    const ids=Object.keys(saved).filter(k=>saved[k]).map(k=>{const d=this.D().find(x=>this.key(x)===k);return d?d.id:null}).filter(x=>x!=null);
+    const u=new URL(location.href); u.hash=ids.length?'list='+ids.join('.'):''; return u.toString();
+  }
+  loadShared(){
+    const m=location.hash.match(/list=([\d.]+)/); if(!m) return;
+    const ids=new Set(m[1].split('.').map(Number)); const saved={...this.state.saved};
+    this.D().forEach(d=>{ if(ids.has(d.id)) saved[this.key(d)]=1; });
+    this.setState({saved, tab:'list', sharedIn:ids.size}); history.replaceState(null,'',location.pathname+location.search);
+    try{ localStorage.setItem('cc_shortlist_v1', JSON.stringify(saved)); }catch(e){}
+  }
+  vnum(d){ return d.v==='NV'?0:+d.v; }
+  isCo(d){ return d.s>=94 && d.t>=2033 && d.vr>=1.2; }
+  isVa(d){ return d.s>=93 && d.p<=400; }
+  filtered(){
+    const st=this.state, sig=JSON.stringify([st.q,st.style,st.ms,st.mp,st.dt,st.reg,st.fl,st.prodF,this.D().length]);
+    if (this._fSig===sig) return this._f.slice();
+    const words=st.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    this._fSig=sig;
+    return (this._f=this.D().filter(d =>
+      (st.style==='All'||d.st===st.style) && d.s>=st.ms && (st.mp>=3000||d.p<=st.mp) &&
+      (st.dt<=2026||(d.t&&d.t>=st.dt)) && (!st.reg||window.REGION_OF(d.r)===st.reg) &&
+      (!st.fl.fr||d.fr) && (!st.fl.co||this.isCo(d)) && (!st.fl.va||this.isVa(d)) && (!st.prodF||this.prod(d)===st.prodF) &&
+      words.every(w=>(d.n+' '+d.v+' '+d.r+' '+d.st+' '+(d.d||'')).toLowerCase().includes(w)))).slice();
+  }
+  cmps(){
+    const p=this.prod.bind(this), vn=this.vnum.bind(this);
+    return { s:(a,b)=>b.s-a.s||a.p-b.p, ppk:(a,b)=>b.s/b.p-a.s/a.p, f:(a,b)=>(a.f||9999)-(b.f||9999)||b.s-a.s,
+      vn:(a,b)=>vn(b)-vn(a)||b.s-a.s, vo:(a,b)=>(vn(a)||9999)-(vn(b)||9999)||b.s-a.s,
+      reg:(a,b)=>window.REGION_OF(a.r).localeCompare(window.REGION_OF(b.r))||a.r.localeCompare(b.r)||b.s-a.s||a.p-b.p, st:(a,b)=>a.st.localeCompare(b.st)||b.s-a.s||a.p-b.p,
+      pr:(a,b)=>p(a).localeCompare(p(b))||b.s-a.s, vr:(a,b)=>b.vr-a.vr||b.s-a.s,
+      pa:(a,b)=>a.p-b.p||b.s-a.s, pd:(a,b)=>b.p-a.p, t:(a,b)=>(b.t||0)-(a.t||0)||b.s-a.s };
+  }
+  scatterRef = (el) => { this.cv = el; if (el) this.drawScatter(); };
+  drawScatter(){
+    const cv=this.cv; if(!cv||!cv.clientWidth) return;
+    const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=340;
+    cv.width=W*dpr; cv.height=H*dpr;
+    const x0=44,x1=W-12,y0=14,y1=H-32;
+    const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle='#FDFCFA'; ctx.fillRect(0,0,W,H);
+    const lp=Math.log(75), lq=Math.log(8000);
+    const X=p=>x0+(Math.log(p)-lp)/(lq-lp)*(x1-x0), Y=s=>y1-(s-84)/(100-84)*(y1-y0);
+    ctx.strokeStyle='#EDEBE3'; ctx.fillStyle='#7996AB'; ctx.font='10px Arial'; ctx.lineWidth=1;
+    [85,90,95,100].forEach(s=>{ const y=Y(s); ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke(); ctx.textAlign='right'; ctx.fillText(String(s), x0-6, y+3); });
+    [100,300,1000,3000].forEach(p=>{ const x=X(p); ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke(); ctx.textAlign='center'; ctx.fillText('R'+(p>=1000?(p/1000)+'k':p), x, y1+14); });
+    const col={Red:'#BC955B',White:'#0074C8'};
+    this.pts=[];
+    this.filtered().forEach(d=>{
+      const x=X(Math.min(Math.max(d.p,75),8000)), y=Y(d.s);
+      this.pts.push({x,y,d});
+      ctx.fillStyle=col[d.st]||'#7996AB'; ctx.globalAlpha=.55;
+      ctx.beginPath(); ctx.arc(x,y,2.6,0,7); ctx.fill();
+    });
+    ctx.globalAlpha=1;
+    const sel=this.state.sel;
+    if(sel){ const pt=this.pts.find(p=>p.d===sel); if(pt){ ctx.strokeStyle='#333E48'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(pt.x,pt.y,6,0,7); ctx.stroke(); } }
+  }
+  renderVals(){
+    const st=this.state, S=this.setState.bind(this), R=this.R.bind(this);
+    const showTags = !(this.props.compact ?? false);
+    const rows0=this.filtered().sort(this.cmps()[st.sort]); this._total=rows0.length;
+    const gk={reg:d=>window.REGION_OF(d.r), st:d=>d.st, pr:d=>this.prod(d)}[st.sort];
+    const ranked=['vr','s','ppk'].includes(st.sort);
+    let last=null;
+    const rows=rows0.slice(0,st.shown).map((d,i)=>{
+      const k=this.key(d), open=!!st.open[k], hearted=!!st.saved[k], inCmp=st.cmp.includes(k);
+      let hd='', hdn='';
+      if(gk){ const g=gk(d); if(g!==last){ last=g; hd=g; hdn=String(rows0.filter(x=>gk(x)===g).length); } }
+      return { key:k, hd, hdn, rk:ranked?String(i+1):'', name:d.n+' '+d.v,
+        meta:d.r+' · '+d.st+(d.f?' · drink '+d.f+'–'+d.t:''),
+        score:String(d.s), price:R(d.p), val:d.vr.toFixed(1)+'× value',
+        fr:!!d.fr, co:this.isCo(d), va:this.isVa(d), open, note:d.d||'',
+        heartGlyph:hearted?'\u2665':'\u2661',
+        heartStyle:'margin-left:auto;background:none;border:none;font-size:20px;line-height:1;cursor:pointer;min-width:44px;min-height:44px;margin-top:-8px;margin-bottom:-8px;display:flex;align-items:center;justify-content:center;color:'+(hearted?'#BC955B':'#B9C2CC'),
+        heartLabel:hearted?'Saved \u2665':'Shortlist',
+        compLabel:inCmp?'In compare \u2713':'Compare',
+        toggle:()=>S({detail:d}),
+        heart:(e)=>{e.stopPropagation();this.toggleSave(k);},
+        comp:(e)=>{e.stopPropagation();this.toggleCmp(k);} };
+    });
+    const chipBase='flex:none;border-radius:999px;padding:9px 14px;min-height:44px;display:inline-flex;align-items:center;font-family:inherit;font-size:13px;cursor:pointer;';
+    const chipOn=chipBase+'background:#0074C8;color:#fff;border:1px solid #0074C8', chipOff=chipBase+'background:none;color:#33637E;border:1px solid #C9CFD6';
+    const styleChips=['All','Red','White','Sparkling','Ros\u00e9','Sweet','Fortified'].map(x=>({label:x, style:st.style===x?chipOn:chipOff, pick:()=>{S({style:x,shown:50});this.top();}}));
+    const nActive=(st.ms>84?1:0)+(st.mp<3000?1:0)+(st.dt>2026?1:0)+(st.reg?1:0)+(st.prodF?1:0)+st.fl.fr+st.fl.co+st.fl.va;
+    const groups=window.REGION_GROUPS||[];
+    const gstats={}; this.D().forEach(d=>{ const g=window.REGION_OF(d.r); (gstats[g]=gstats[g]||{n:0,s:0}).n++; gstats[g].s+=d.s; });
+    const gnames=groups.map(g=>g.g).concat(['Wider Cape']).filter(g=>gstats[g]);
+    const maxN=Math.max(...gnames.map(g=>gstats[g].n),1);
+    const regionRows=gnames.slice().sort((a,b)=>gstats[b].n-gstats[a].n).map(g=>({ name:g,
+      barStyle:'width:'+(gstats[g].n/maxN*100).toFixed(1)+'%;height:4px;background:#0074C8',
+      stat:gstats[g].n+' \u00b7 avg '+(gstats[g].s/gstats[g].n).toFixed(1),
+      pick:()=>{S({tab:'wines',reg:g,style:'All',shown:50});window.scrollTo(0,0);} }));
+    const sstats={}; this.D().forEach(d=>{ (sstats[d.st]=sstats[d.st]||{n:0,s:0}).n++; sstats[d.st].s+=d.s; });
+    const smax=Math.max(...Object.values(sstats).map(x=>x.n),1);
+    const styleRows=Object.keys(sstats).sort((a,b)=>sstats[b].n-sstats[a].n).map(x=>({ name:x,
+      barStyle:'width:'+(sstats[x].n/smax*100).toFixed(1)+'%;height:4px;background:#BC955B',
+      stat:sstats[x].n+' \u00b7 avg '+(sstats[x].s/sstats[x].n).toFixed(1),
+      pick:()=>{S({tab:'wines',style:x,shown:50});window.scrollTo(0,0);} }));
+    const pstats={}; this.D().forEach(d=>{ const p=this.prod(d); (pstats[p]=pstats[p]||{n:0,s:0}).n++; pstats[p].s+=d.s; });
+    const producerRows=Object.keys(pstats).filter(p=>pstats[p].n>=4)
+      .sort((a,b)=>pstats[b].s/pstats[b].n-pstats[a].s/pstats[a].n).slice(0,25)
+      .map((p,i)=>({ rk:String(i+1), name:p, stat:'avg '+(pstats[p].s/pstats[p].n).toFixed(1)+' \u00b7 '+pstats[p].n+' wines',
+        pick:()=>{S({tab:'wines',prodF:p,q:'',style:'All',reg:'',shown:50,filtersOpen:true});window.scrollTo(0,0);} }));
+    const ycounts={}; this.D().forEach(d=>{ if(d.t){ const y=d.t>=2041?2041:d.t; ycounts[y]=(ycounts[y]||0)+1; } });
+    const ymax=Math.max(...Object.values(ycounts),1);
+    const yearRows=[]; for(let y=2027;y<=2041;y++){ if(!ycounts[y]) continue; yearRows.push({ label:y===2041?'2041+':String(y), n:String(ycounts[y]),
+      barStyle:'width:'+(ycounts[y]/ymax*100).toFixed(1)+'%;height:12px;background:#7996AB',
+      pick:()=>{S({tab:'wines',dt:Math.min(y,2040),shown:50,filtersOpen:true});window.scrollTo(0,0);} }); }
+    const findK=k=>this.D().find(d=>this.key(d)===k);
+    const savedKeys=Object.keys(st.saved).filter(k=>st.saved[k]);
+    const savedRows=savedKeys.map(findK).filter(Boolean).sort((a,b)=>b.s-a.s).map(d=>{ const k=this.key(d), inCmp=st.cmp.includes(k);
+      return { name:d.n+' '+d.v, meta:d.r+' \u00b7 '+d.st+' \u00b7 '+d.vr.toFixed(1)+'\u00d7 value', score:String(d.s), price:R(d.p), open:()=>S({detail:d}),
+        compLabel:inCmp?'\u2713':'+ Compare', comp:()=>this.toggleCmp(k), remove:()=>this.toggleSave(k) }; });
+    const cmpCards=st.cmp.map(findK).filter(Boolean).map(d=>({ name:d.n+' '+d.v, score:String(d.s), price:R(d.p),
+      val:d.vr.toFixed(1)+'\u00d7', reg:d.r+' \u00b7 '+d.st, win:d.f?d.f+'\u2013'+d.t:'\u2014',
+      remove:()=>this.toggleCmp(this.key(d)) }));
+    const cmpNotes=st.cmp.map(findK).filter(d=>d&&d.d);
+    const sortName={vr:' \u00b7 ranked by value',s:' \u00b7 by score',ppk:' \u00b7 points per rand',reg:' \u00b7 by region',st:' \u00b7 by style',pr:' \u00b7 by producer'}[st.sort]||'';
+    const sel=st.sel;
+    const pick=st.pick;
+    const det=st.detail, detK=det?this.key(det):'';
+    const mini=x=>({ name:x.n+' '+x.v, meta:x.r+' \u00b7 '+R(x.p), score:String(x.s), open:()=>S({detail:x}) });
+    const detOthers=det?this.D().filter(x=>x!==det&&this.prod(x)===this.prod(det)).sort((a,b)=>b.s-a.s).slice(0,6).map(mini):[];
+    const detSimilar=det?this.D().filter(x=>x!==det&&x.st===det.st&&Math.abs(x.s-det.s)<=1&&x.p<=det.p*1.05&&this.prod(x)!==this.prod(det)).sort((a,b)=>b.vr-a.vr).slice(0,5).map(mini):[];
+    const mapSel=groups.find(g=>g.g===st.mapReg)||{g:'',lat:-33.8,lon:19.2};
+    const lens=st.lens||'quality';
+    const LENS={quality:{l:'Quality',f:ws=>(ws.reduce((a,w)=>a+w.s,0)/ws.length).toFixed(1),u:'avg score'},
+      value:{l:'Value',f:ws=>(ws.reduce((a,w)=>a+w.vr,0)/ws.length).toFixed(2)+'\u00d7',u:'avg value'},
+      ageing:{l:'Ageing',f:ws=>{const t=ws.filter(w=>w.t);return t.length?String(Math.round(t.reduce((a,w)=>a+w.t,0)/t.length)):'\u2014'},u:'avg drink-to'},
+      price:{l:'Price',f:ws=>{const p=ws.map(w=>w.p).sort((a,b)=>a-b);return R(p[Math.floor(p.length/2)])},u:'median price'}};
+    const lensChips=Object.keys(LENS).map(k=>({label:LENS[k].l, style:(k===lens?chipOn:chipOff)+';flex:1;padding:7px 4px', pick:()=>{ S({lens:k}); }}));
+    const cardOrder=[''].concat(gnames.filter(g=>g!=='Wider Cape').sort((a,b)=>gstats[b].n-gstats[a].n)); this._cardOrder=cardOrder;
+    const regionCards=cardOrder.map(g=>{ const ws=g?this.D().filter(d=>window.REGION_OF(d.r)===g):this.D();
+      const sty={}; ws.forEach(w=>{sty[w.st]=(sty[w.st]||0)+1;}); const topSty=Object.keys(sty).sort((a,b)=>sty[b]-sty[a])[0];
+      const grape={}; ws.forEach(w=>{ const m=w.n.match(/(Chenin Blanc|Chardonnay|Sauvignon Blanc|Pinot Noir|Syrah|Shiraz|Cabernet Sauvignon|Cabernet Franc|Cinsault|Grenache|Pinotage|Semillon|Riesling|Merlot|Bordeaux|Rh\u00f4ne|Blend|MCC|Cap Classique)/i); if(m) grape[m[1]]=(grape[m[1]]||0)+1; });
+      const topGrape=Object.keys(grape).sort((a,b)=>grape[b]-grape[a])[0];
+      const ps={}; ws.forEach(w=>{const p=this.prod(w);(ps[p]=ps[p]||{n:0,s:0}).n++;ps[p].s+=w.s;}); const lead=Object.keys(ps).filter(p=>ps[p].n>=3).sort((a,b)=>ps[b].s/ps[b].n-ps[a].s/ps[a].n)[0]||Object.keys(ps).sort((a,b)=>ps[b].n-ps[a].n)[0];
+      const on=(st.mapReg||'')===g;
+      return { name:g||'All winelands', big:LENS[lens].f(ws), line1:ws.length+' wines \u00b7 '+LENS[lens].u, sig:(topGrape?topGrape+' \u00b7 ':'')+(topSty||''), lead:lead||'\u2014',
+        style:'flex:none;width:250px;scroll-snap-align:start;border:1px solid '+(on?'#0074C8':'#E3E0D8')+';border-radius:2px;padding:12px;background:'+(on?'#F1F7FC':'#FDFCFA')+';cursor:pointer',
+        pick:()=>{ S({mapReg:g,pin:''}); this.scrollCarousel(g); if(this.mapEl){ const c=groups.find(x=>x.g===g)||{lat:-33.8,lon:19.2}; this.mapEl.src='https://maps.google.com/maps?q='+c.lat+','+c.lon+'&t=k&z='+(g?11:8)+'&output=embed'; } } }; });
+    const snapW=this.D().filter(d=>!st.mapReg||window.REGION_OF(d.r)===st.mapReg);
+    const snapPrices=snapW.map(d=>d.p).sort((a,b)=>a-b);
+    const snapStyles={}; snapW.forEach(d=>{snapStyles[d.st]=(snapStyles[d.st]||0)+1;});
+    const snapPst={}; snapW.forEach(d=>{const p=this.prod(d);(snapPst[p]=snapPst[p]||{n:0,s:0}).n++;snapPst[p].s+=d.s;});
+    const pinMap=q=>{ if(this.mapEl) this.mapEl.src='https://maps.google.com/maps?q='+encodeURIComponent(q)+'&t=k&z=14&output=embed'; };
+    const snapProds=Object.keys(snapPst).filter(p=>snapPst[p].n>=2).sort((a,b)=>snapPst[b].s/snapPst[b].n-snapPst[a].s/snapPst[a].n).slice(0,8)
+      .map(p=>({label:p+' \u00b7 '+(snapPst[p].s/snapPst[p].n).toFixed(1), style:st.pin===p?chipOn:chipOff, pin:()=>{ if(st.pin===p){ S({tab:'wines',prodF:p,q:'',style:'All',reg:'',shown:50,filtersOpen:true}); window.scrollTo(0,0); return; } S({pin:p}); if(st.terrain) pinMap(p+' wine estate '+(st.mapReg||'Western Cape')+' South Africa'); }}));
+    const pinW=st.pin?snapW.filter(d=>this.prod(d)===st.pin):null;
+    const snapTop=(pinW||snapW).slice().sort((a,b)=>b.s-a.s||a.p-b.p).slice(0,pinW?6:3).map(mini);
+    const snapValue=(pinW||snapW).slice().sort((a,b)=>b.vr-a.vr)[0];
+    return {
+      snapTitle:st.pin?st.pin+' \u00b7 '+(st.mapReg||'All winelands'):(st.mapReg||'All winelands')+' snapshot', snapN:String(snapW.length),
+      snapAvg:snapW.length?(snapW.reduce((a,d)=>a+d.s,0)/snapW.length).toFixed(1):'\u2014',
+      snapMed:snapPrices.length?R(snapPrices[Math.floor(snapPrices.length/2)]):'\u2014',
+      snapStyle:Object.keys(snapStyles).sort((a,b)=>snapStyles[b]-snapStyles[a])[0]||'\u2014',
+      snapProds, snapTop,
+      snapValueName:snapValue?snapValue.n+' '+snapValue.v:'', snapValueMeta:snapValue?snapValue.r+' \u00b7 '+R(snapValue.p)+' \u00b7 '+snapValue.vr.toFixed(1)+'\u00d7 value':'',
+      snapValueScore:snapValue?String(snapValue.s):'', snapValueOpen:()=>{ if(snapValue) S({detail:snapValue}); },
+      isWines:st.tab==='wines', isExplore:st.tab==='explore', isCharts:st.tab==='charts', isList:st.tab==='list',
+      countLine: st.ready ? this.D().length.toLocaleString('en-ZA')+' South African wines, scored and priced \u00b7 2026 report' : 'Loading the cellar\u2026',
+      q:st.q, onQ:e=>{S({q:e.target.value,shown:50});this.top();},
+      filterBtnLabel:'Filters'+(nActive?' \u00b7 '+nActive:''), toggleFilters:()=>S(s=>({filtersOpen:!s.filtersOpen})),
+      filtersOpen:st.filtersOpen && st.tab==='wines', styleChips, showTags,
+      ms:st.ms, onMs:e=>{S({ms:+e.target.value,shown:50});this.top();}, msLabel:st.ms<=84?'any':String(st.ms),
+      mp:st.mp, onMp:e=>{S({mp:+e.target.value,shown:50});this.top();}, mpLabel:st.mp>=3000?'any':R(st.mp),
+      dt:st.dt, onDt:e=>{S({dt:+e.target.value,shown:50});this.top();}, dtLabel:st.dt<=2026?'any':String(st.dt),
+      hasProdF:!!st.prodF, prodF:st.prodF, clearProdF:()=>{S({prodF:'',shown:50});this.top();},
+      reg:st.reg, onReg:e=>{S({reg:e.target.value,shown:50});this.top();}, regionOpts:gnames,
+      frStyle:st.fl.fr?chipOn:chipOff, coStyle:st.fl.co?chipOn:chipOff, vaStyle:st.fl.va?chipOn:chipOff,
+      toggleFr:()=>{S(s=>({fl:{...s.fl,fr:s.fl.fr?0:1},shown:50}));this.top();}, toggleCo:()=>{S(s=>({fl:{...s.fl,co:s.fl.co?0:1},shown:50}));this.top();}, toggleVa:()=>{S(s=>({fl:{...s.fl,va:s.fl.va?0:1},shown:50}));this.top();},
+      resetFilters:()=>{S({ms:84,mp:3000,dt:2026,reg:'',prodF:'',fl:{fr:0,co:0,va:0},style:'All',q:'',shown:50});this.top();},
+      shownLine:rows0.length.toLocaleString('en-ZA')+' wine'+(rows0.length===1?'':'s')+(st.prodF?' \u00b7 '+st.prodF:'')+sortName,
+      sort:st.sort, onSort:e=>{S({sort:e.target.value,shown:50});this.top();},
+      rows, hasMore:false, isEmpty:st.ready&&rows0.length===0,
+      more:()=>S(s=>({shown:s.shown+50})), moreLabel:'Loading more\u2026',
+      regionRows, styleRows, producerRows, yearRows,
+      scatterRef:this.scatterRef,
+      onScatterTap:e=>{ const r=e.target.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+        let best=null,bd=196; (this.pts||[]).forEach(p=>{ const d2=(p.x-x)*(p.x-x)+(p.y-y)*(p.y-y); if(d2<bd){bd=d2;best=p.d;} });
+        S({sel:best}); },
+      sel:!!sel, selOpen:()=>{ if(sel) S({detail:sel}); }, selName:sel?sel.n+' '+sel.v:'', selMeta:sel?sel.r+' \u00b7 '+sel.st+' \u00b7 '+sel.vr.toFixed(1)+'\u00d7 value':'',
+      selScore:sel?String(sel.s):'', selPrice:sel?R(sel.p):'',
+      savedLine:savedKeys.length?savedKeys.length+' saved \u00b7 kept on this device':'Saved wines are kept on this device.',
+      noSaves:st.ready&&savedKeys.length===0, savedRows,
+      hasCmp:st.cmp.length>0&&!st.cmpOpen, cmpLine:st.cmp.length+' wine'+(st.cmp.length===1?'':'s')+' to compare',
+      cmpShow:()=>S({cmpOpen:true}), cmpClear:()=>S({cmp:[]}), cmpClose:()=>S({cmpOpen:false}),
+      cmpOpen:st.cmpOpen, cmpCards, cmpNote:cmpNotes.length===1?cmpNotes[0].d:'',
+      surprise:()=>{ const f=this.filtered(); if(f.length) S({pick:f[Math.floor(Math.random()*f.length)]}); },
+      pickOpen:!!pick, pickClose:()=>S({pick:null}), swallow:e=>e.stopPropagation(),
+      pickName:pick?pick.n+' '+pick.v:'', pickMeta:pick?pick.r+' \u00b7 '+pick.st+(pick.f?' \u00b7 drink '+pick.f+'\u2013'+pick.t:''):'',
+      pickScore:pick?String(pick.s):'', pickPrice:pick?R(pick.p):'', pickNote:pick?(pick.d||''):'',
+      pickHeart:()=>{ if(pick) this.toggleSave(this.key(pick)); },
+      pickHeartLabel:pick&&st.saved[this.key(pick)]?'Saved \u2665':'Shortlist',
+      detOpen:!!det, detClose:()=>S({detail:null}), detName:det?det.n+' '+det.v:'', detProd:det?this.prod(det):'',
+      detMeta:det?det.r+' \u00b7 '+det.st:'', detScore:det?String(det.s):'', detPrice:det?R(det.p):'', detVal:det?det.vr.toFixed(1)+'\u00d7':'',
+      detWin:det?(det.f?det.f+'\u2013'+det.t:'\u2014'):'', detNote:det?(det.d||''):'', detFr:!!(det&&det.fr), detCo:!!(det&&this.isCo(det)), detVa:!!(det&&this.isVa(det)),
+      detHeartLabel:det&&st.saved[detK]?'Saved \u2665':'Shortlist', detHeart:()=>{if(det)this.toggleSave(detK);},
+      detCompLabel:det&&st.cmp.includes(detK)?'In compare \u2713':'Compare', detComp:()=>{if(det)this.toggleCmp(detK);},
+      detProdPick:()=>{ if(det){ S({detail:null,tab:'wines',prodF:this.prod(det),q:'',style:'All',reg:'',shown:50,filtersOpen:true}); window.scrollTo(0,0);} },
+      detOthers, hasOthers:detOthers.length>0, detOthersLine:det?'More from '+this.prod(det):'', detSimilar, hasSimilar:detSimilar.length>0,
+      detMapHref:det?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(this.prod(det)+' wine estate '+det.r+' South Africa'):'#',
+      mapRef:el=>{ this.mapEl=el; if(el&&st.terrain&&(!el.src||el.src==='about:blank')) el.src='https://maps.google.com/maps?q='+mapSel.lat+','+mapSel.lon+'&t=k&z='+(st.mapReg?11:8)+'&output=embed'; }, carouselRef:el=>{ this.carEl=el; },
+      onCarousel:e=>{ const el=e.target; clearTimeout(this._carT); this._carT=setTimeout(()=>{ let best=0,bd=1e9; [...el.children].forEach((c,i)=>{const d=Math.abs(c.offsetLeft-16-el.scrollLeft); if(d<bd){bd=d;best=i;}}); const g=cardOrder[best]||''; if(g!==(this.state.mapReg||'')){ S({mapReg:g,pin:''}); } },120); },
+      lensChips, regionCards,
+      mapHint:'Regions sized by wines scored. Choose a lens to change the card figures, then tap a region card for its snapshot.',
+      terrainOn:!!st.terrain, terrainOff:!st.terrain, terrainLabel:st.terrain?'Data map':'Satellite',
+      toggleTerrain:()=>S(s=>({terrain:!s.terrain})),
+      snapProdHint:st.pin?'Showing '+st.pin+' \u2014 tap another producer, or the chip again to browse':'Top producers here \u2014 tap one to highlight',
+      mapEarth:'https://earth.google.com/web/@'+mapSel.lat+','+mapSel.lon+','+(st.mapReg?'300a,40000d':'800a,250000d')+',35y,0h,45t,0r',
+      mapBrowse:()=>{ S({tab:'wines',reg:st.mapReg,style:'All',shown:50}); window.scrollTo(0,0); },
+      mapBrowseLabel:st.mapReg?'Browse '+st.mapReg:'Browse all wines',
+      hasSaves:savedKeys.length>0,
+      shareLink:()=>{ const u=this.shareUrl(st.saved); const done=()=>S({shared:true},()=>setTimeout(()=>S({shared:false}),1800));
+        if(navigator.share){ navigator.share({title:'My Cape Cellar shortlist',url:u}).then(done).catch(()=>{}); } else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(done).catch(()=>prompt('Copy link',u)); } else prompt('Copy link',u); },
+      shareLabel:st.shared?'Link copied \u2713':'Share list', sharedNote:st.sharedIn?st.sharedIn+' shared wine'+(st.sharedIn===1?'':'s')+' added to your shortlist.':'',
+      goWines:()=>S({tab:'wines'}), goExplore:()=>S({tab:'explore'}), goCharts:()=>S({tab:'charts'}), goList:()=>S({tab:'list'}),
+      tabWinesStyle:this.tabStyle('wines'), tabExploreStyle:this.tabStyle('explore'), tabChartsStyle:this.tabStyle('charts'), tabListStyle:this.tabStyle('list')
+    };
+  }
+  tabStyle(t){
+    const on=this.state.tab===t;
+    return 'flex:1;background:none;border:none;border-top:2px solid '+(on?'#0074C8':'transparent')+';margin-top:-2px;padding:13px 0 max(13px, env(safe-area-inset-bottom));font-family:\'Barlow Condensed\',Arial;font-size:14px;font-weight:'+(on?'600':'400')+';letter-spacing:1.2px;text-transform:uppercase;color:'+(on?'#0074C8':'#7996AB')+';cursor:pointer';
+  }
+  toggleSave(k){
+    this.setState(s=>{ const saved={...s.saved}; if(saved[k]) delete saved[k]; else saved[k]=1;
+      try{ localStorage.setItem('cc_shortlist_v1', JSON.stringify(saved)); }catch(e){}
+      return {saved}; });
+  }
+  toggleCmp(k){
+    this.setState(s=>{ let cmp=s.cmp.includes(k)?s.cmp.filter(x=>x!==k):s.cmp.concat(k); if(cmp.length>3) cmp=cmp.slice(1); return {cmp}; });
+  }
+}
+
+</script>
+
+
+</body></html>
